@@ -8,6 +8,10 @@ def get_options(args=None):
     parser = argparse.ArgumentParser(
         description="Attention based model for solving the Travelling Salesman Problem with Reinforcement Learning")
 
+    parser.add_argument('--evolve', type=bool, default=False)
+    parser.add_argument('--num_samples', type=int, default=10)
+    parser.add_argument('--sigma', type=float, default=0.01)
+
     # Data
     parser.add_argument('--problem', default='tsp', help="The problem to solve, default 'tsp'")
     parser.add_argument('--graph_size', type=int, default=20, help="The size of the problem graph")

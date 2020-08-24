@@ -6,6 +6,8 @@ import pprint as pp
 
 import torch
 import torch.optim as optim
+from torch.nn.utils import parameters_to_vector, vector_to_parameters
+from torch.utils.data import DataLoader
 from tensorboard_logger import Logger as TbLogger
 
 from nets.critic_network import CriticNetwork
@@ -167,6 +169,56 @@ def run(opts):
                 opts
             )
 
+            if opts.evolve:
+                evolve_epoch(
+                    model,
+                    baseline,
+                    epoch,
+                    problem,
+                    opts
+                )
+
+
+def fitness(batch, model, params):
+    # set model params to what was given
+    vector_to_parameters(params, model.parameters())
+
+    # Run the model on the batch
+    model.eval()
+    model.set_decode_type('greedy')
+    with torch.no_grad():
+        length, log_p, pi = model(batch, return_pi=True)
+
+    # fitness = mean tour length
+    return length.mean()
+
+
+def evolve_epoch(model, baseline, epoch, problem, opts):
+    # make dataset
+    dataset = baseline.wrap_dataset(problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution))
+    dataloader = DataLoader(dataset, batch_size=opts.batch_size, num_workers=1)
+
+    # batch improvement
+    for batch in dataloader:
+        # get current model params
+        params = parameters_to_vector(model.parameters()).detach()
+
+        # estimate gradient
+        grad = 0
+        for _ in range(opts.num_samples):
+            eps = torch.randn_like(params)
+            grad += fitness(batch, model, params + opts.sigma * eps) * eps
+            grad += fitness(batch, model, params - opts.sigma * eps) * (-eps)
+        grad /= 2 * opts.num_samples * opts.sigma
+
+        # follow gradient to update params
+        #! lr scheduler??
+        params -= opts.lr_model * grad
+
+    print(f'Evolve epoch {epoch} comopleted')
+
 
 if __name__ == "__main__":
     run(get_options())
+
+# python run.py --evolve True --graph_size 20 --baseline rollout --run_name 'tsp20_rollout' --val_dataset data/tsp/tsp20_validation_seed4321.pkl
