@@ -152,7 +152,7 @@ def run(opts):
             torch.cuda.set_rng_state_all(load_data['cuda_rng_state'])
         # Set the random states
         # Dumping of state was done before epoch callback, so do that now (model is loaded)
-        baseline.epoch_callback(model, epoch_resume)A
+        baseline.epoch_callback(model, epoch_resume)
         print("Resuming after {}".format(epoch_resume))
         opts.epoch_start = epoch_resume + 1
 
