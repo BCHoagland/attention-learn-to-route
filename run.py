@@ -226,8 +226,6 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
             grad += fitness(model, batch, params, -eps, opts)
         grad /= 2 * opts.num_samples * opts.sigma
 
-        print('got here')
-
         # follow gradient to update params
         params -= opts.lr_model * grad
     
