@@ -161,17 +161,17 @@ def run(opts):
     else:
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
             # train normally
-            # train_epoch(
-            #     model,
-            #     optimizer,
-            #     baseline,
-            #     lr_scheduler,
-            #     epoch,
-            #     val_dataset,
-            #     problem,
-            #     tb_logger,
-            #     opts
-            # )
+            train_epoch(
+                model,
+                optimizer,
+                baseline,
+                lr_scheduler,
+                epoch,
+                val_dataset,
+                problem,
+                tb_logger,
+                opts
+            )
 
             # train with evolution
             with torch.no_grad():
