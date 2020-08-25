@@ -8,7 +8,6 @@ from tqdm import tqdm
 
 import torch
 import torch.optim as optim
-from torch.nn.utils import parameters_to_vector, vector_to_parameters #! REMOVE
 from torch.utils.data import DataLoader
 from tensorboard_logger import Logger as TbLogger
 
@@ -172,44 +171,6 @@ def run(opts):
                 tb_logger,
                 opts
             )
-
-
-#! REMOVE \/
-def fitness(model, batch, params, eps, opts):
-    vector_to_parameters(params + opts.sigma * eps, model.parameters())
-    return validate(model, batch, opts, display=False) * eps
-
-
-def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
-    print(f'STARTED EVOLVE EPOCH {epoch}')
-
-    # make dataset
-    dataset = baseline.wrap_dataset(problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution))
-    dataloader = DataLoader(dataset, batch_size=opts.batch_size, num_workers=1)
-
-    # batch improvement
-    for batch in tqdm(dataloader, disable=opts.no_progress_bar):
-        # get current model params
-        params = parameters_to_vector(model.parameters())
-
-        # estimate gradient
-        grad = 0
-        for _ in range(opts.num_samples):
-            eps = torch.randn_like(params)
-
-            grad += fitness(model, batch, params, eps, opts)
-            grad += fitness(model, batch, params, -eps, opts)
-        grad /= 2 * opts.num_samples * opts.sigma
-
-        # follow gradient to update params
-        params -= opts.lr_model * grad
-    
-    # set model params to what was output from the batch training
-    vector_to_parameters(params, model.parameters())
-
-    print(f'COMPLETED EVOLVE EPOCH {epoch}')
-    wandb.log({'evolve': validate(model, val_dataset, opts)}, step=epoch)
-#! REMOVE /\
 
 if __name__ == "__main__":
     run(get_options())

@@ -105,7 +105,8 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
             opts
         )
 
-        evolve_batch(model, batch, opts)
+        if opts.evolve:
+            evolve_batch(model, batch, opts)
 
         step += 1
 
@@ -149,6 +150,8 @@ def train_batch(
         tb_logger,
         opts
 ):
+    model.train()
+
     x, bl_val = baseline.unwrap_batch(batch)
     x = move_to(x, opts.device)
     bl_val = move_to(bl_val, opts.device) if bl_val is not None else None
