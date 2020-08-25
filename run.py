@@ -160,6 +160,18 @@ def run(opts):
         validate(model, val_dataset, opts)
     else:
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
+            # train with evolution
+            with torch.no_grad():
+                if opts.evolve:
+                    evolve_epoch(
+                        model,
+                        baseline,
+                        epoch,
+                        problem,
+                        val_dataset,
+                        opts
+                    )
+
             # train normally
             train_epoch(
                 model,
@@ -172,18 +184,6 @@ def run(opts):
                 tb_logger,
                 opts
             )
-
-            # train with evolution
-            with torch.no_grad():
-                if opts.evolve:
-                    evolve_epoch(
-                        model,
-                        baseline,
-                        epoch,
-                        problem,
-                        val_dataset,
-                        opts
-                    )
 
 
 def fitness(batch, model, params):
