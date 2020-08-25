@@ -3,6 +3,7 @@
 import os
 import json
 import pprint as pp
+import wandb
 
 import torch
 import torch.optim as optim
@@ -20,6 +21,7 @@ from utils import torch_load_cpu, load_problem
 
 
 def run(opts):
+    wandb.init(project='Routing Evolution', name=opts.run_name)
 
     # Pretty print the run args
     pp.pprint(vars(opts))
@@ -157,6 +159,7 @@ def run(opts):
         validate(model, val_dataset, opts)
     else:
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
+            # train normally
             train_epoch(
                 model,
                 optimizer,
@@ -169,12 +172,14 @@ def run(opts):
                 opts
             )
 
+            # train with evolution
             if opts.evolve:
                 evolve_epoch(
                     model,
                     baseline,
                     epoch,
                     problem,
+                    val_dataset,
                     opts
                 )
 
@@ -193,7 +198,7 @@ def fitness(batch, model, params):
     return length.mean()
 
 
-def evolve_epoch(model, baseline, epoch, problem, opts):
+def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
     # make dataset
     dataset = baseline.wrap_dataset(problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution))
     dataloader = DataLoader(dataset, batch_size=opts.batch_size, num_workers=1)
@@ -212,10 +217,13 @@ def evolve_epoch(model, baseline, epoch, problem, opts):
         grad /= 2 * opts.num_samples * opts.sigma
 
         # follow gradient to update params
-        #! lr scheduler??
         params -= opts.lr_model * grad
+    
+    # set model params to what was output from the batch training
+    vector_to_parameters(params, model.parameters())
 
-    print(f'Evolve epoch {epoch} comopleted')
+    print(f'Evolve epoch {epoch} completed')
+    wandb.log({'evolve': validate(model, val_dataset, opts)}, step=epoch)
 
 
 if __name__ == "__main__":

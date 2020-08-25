@@ -3,6 +3,7 @@ import time
 from tqdm import tqdm
 import torch
 import math
+import wandb
 
 from torch.utils.data import DataLoader
 from torch.nn import DataParallel
@@ -117,6 +118,8 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
 
     if not opts.no_tensorboard:
         tb_logger.log_value('val_avg_reward', avg_reward, step)
+    
+    wandb.log({'val': avg_reward}, step=step)
 
     baseline.epoch_callback(model, epoch)
 
@@ -158,5 +161,5 @@ def train_batch(
 
     # Logging
     if step % int(opts.log_step) == 0:
-        log_values(cost, grad_norms, epoch, batch_id, step,
-                   log_likelihood, reinforce_loss, bl_loss, tb_logger, opts)
+        # log_values(cost, grad_norms, epoch, batch_id, step, log_likelihood, reinforce_loss, bl_loss, tb_logger, opts)
+        wandb.log({'Avg tour length': cost.mean()}, step=step)
