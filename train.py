@@ -7,6 +7,7 @@ import wandb
 
 from torch.utils.data import DataLoader
 from torch.nn import DataParallel
+from torch.nn.utils import parameters_to_vector, vector_to_parameters
 
 from nets.attention_model import set_decode_type
 from utils.log_utils import log_values
@@ -104,6 +105,8 @@ def train_epoch(model, optimizer, baseline, lr_scheduler, epoch, val_dataset, pr
             opts
         )
 
+        evolve_batch(model, batch, opts)
+
         step += 1
 
     epoch_duration = time.time() - start_time
@@ -171,3 +174,27 @@ def train_batch(
     if step % int(opts.log_step) == 0:
         # log_values(cost, grad_norms, epoch, batch_id, step, log_likelihood, reinforce_loss, bl_loss, tb_logger, opts)
         wandb.log({'Avg tour length': cost.mean()}, step=step)
+
+
+def fitness(model, batch, params, eps, opts):
+    vector_to_parameters(params + opts.sigma * eps, model.parameters())
+    return validate(model, batch, opts, display=False) * eps
+
+
+def evolve_batch(model, batch, opts):
+    params = parameters_to_vector(model.parameters())
+
+    # estimate gradient
+    grad = 0
+    for _ in range(opts.num_samples):
+        eps = torch.randn_like(params)
+
+        grad += fitness(model, batch, params, eps, opts)
+        grad += fitness(model, batch, params, -eps, opts)
+    grad /= 2 * opts.num_samples * opts.sigma
+
+    # follow gradient to update params
+    params -= opts.lr_model * grad
+    
+    # set model params to what was output from the batch training
+    vector_to_parameters(params, model.parameters())

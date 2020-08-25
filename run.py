@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 import torch
 import torch.optim as optim
-from torch.nn.utils import parameters_to_vector, vector_to_parameters
+from torch.nn.utils import parameters_to_vector, vector_to_parameters #! REMOVE
 from torch.utils.data import DataLoader
 from tensorboard_logger import Logger as TbLogger
 
@@ -160,18 +160,6 @@ def run(opts):
         validate(model, val_dataset, opts)
     else:
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
-            # train with evolution
-            with torch.no_grad():
-                if opts.evolve:
-                    evolve_epoch(
-                        model,
-                        baseline,
-                        epoch,
-                        problem,
-                        val_dataset,
-                        opts
-                    )
-
             # train normally
             train_epoch(
                 model,
@@ -186,20 +174,7 @@ def run(opts):
             )
 
 
-def fitness(batch, model, params):
-    # set model params to what was given
-    vector_to_parameters(params, model.parameters())
-
-    # Run the model on the batch
-    model.eval()
-    model.set_decode_type('greedy')
-    with torch.no_grad():
-        length, log_p, pi = model(batch, return_pi=True)
-
-    # fitness = mean tour length
-    return length.mean()
-
-
+#! REMOVE \/
 def fitness(model, batch, params, eps, opts):
     vector_to_parameters(params + opts.sigma * eps, model.parameters())
     return validate(model, batch, opts, display=False) * eps
@@ -234,7 +209,7 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
 
     print(f'COMPLETED EVOLVE EPOCH {epoch}')
     wandb.log({'evolve': validate(model, val_dataset, opts)}, step=epoch)
-
+#! REMOVE /\
 
 if __name__ == "__main__":
     run(get_options())
