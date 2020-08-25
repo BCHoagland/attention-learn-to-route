@@ -4,6 +4,7 @@ import os
 import json
 import pprint as pp
 import wandb
+from tqdm import tqdm
 
 import torch
 import torch.optim as optim
@@ -151,7 +152,7 @@ def run(opts):
             torch.cuda.set_rng_state_all(load_data['cuda_rng_state'])
         # Set the random states
         # Dumping of state was done before epoch callback, so do that now (model is loaded)
-        baseline.epoch_callback(model, epoch_resume)
+        baseline.epoch_callback(model, epoch_resume)A
         print("Resuming after {}".format(epoch_resume))
         opts.epoch_start = epoch_resume + 1
 
@@ -160,17 +161,17 @@ def run(opts):
     else:
         for epoch in range(opts.epoch_start, opts.epoch_start + opts.n_epochs):
             # train normally
-            train_epoch(
-                model,
-                optimizer,
-                baseline,
-                lr_scheduler,
-                epoch,
-                val_dataset,
-                problem,
-                tb_logger,
-                opts
-            )
+            # train_epoch(
+            #     model,
+            #     optimizer,
+            #     baseline,
+            #     lr_scheduler,
+            #     epoch,
+            #     val_dataset,
+            #     problem,
+            #     tb_logger,
+            #     opts
+            # )
 
             # train with evolution
             if opts.evolve:
@@ -206,7 +207,7 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
     dataloader = DataLoader(dataset, batch_size=opts.batch_size, num_workers=1)
 
     # batch improvement
-    for batch in dataloader:
+    for _, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
         # get current model params
         params = parameters_to_vector(model.parameters()).detach()
 
@@ -217,6 +218,8 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
             grad += fitness(batch, model, params + opts.sigma * eps) * eps
             grad += fitness(batch, model, params - opts.sigma * eps) * (-eps)
         grad /= 2 * opts.num_samples * opts.sigma
+
+        print('got here')
 
         # follow gradient to update params
         params -= opts.lr_model * grad
@@ -231,4 +234,4 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
 if __name__ == "__main__":
     run(get_options())
 
-# python run.py --evolve True --graph_size 20 --baseline rollout --run_name 'tsp20_rollout' --val_dataset data/tsp/tsp20_validation_seed4321.pkl
+# python run.py --evolve True --log_step 10 --graph_size 20 --baseline rollout --run_name 'tsp20_rollout' --val_dataset data/tsp/tsp20_validation_seed4321.pkl
