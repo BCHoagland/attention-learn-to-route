@@ -174,15 +174,16 @@ def run(opts):
             # )
 
             # train with evolution
-            if opts.evolve:
-                evolve_epoch(
-                    model,
-                    baseline,
-                    epoch,
-                    problem,
-                    val_dataset,
-                    opts
-                )
+            with torch.no_grad():
+                if opts.evolve:
+                    evolve_epoch(
+                        model,
+                        baseline,
+                        epoch,
+                        problem,
+                        val_dataset,
+                        opts
+                    )
 
 
 def fitness(batch, model, params):
@@ -199,6 +200,11 @@ def fitness(batch, model, params):
     return length.mean()
 
 
+def fitness(model, batch, params, eps, opts):
+    vector_to_parameters(params + opts.sigma * eps, model.parameters())
+    return validate(model, batch, opts, display=False) * eps
+
+
 def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
     print(f'STARTED EVOLVE EPOCH {epoch}')
 
@@ -207,16 +213,17 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
     dataloader = DataLoader(dataset, batch_size=opts.batch_size, num_workers=1)
 
     # batch improvement
-    for _, batch in enumerate(tqdm(dataloader, disable=opts.no_progress_bar)):
+    for batch in tqdm(dataloader, disable=opts.no_progress_bar):
         # get current model params
-        params = parameters_to_vector(model.parameters()).detach()
+        params = parameters_to_vector(model.parameters())
 
         # estimate gradient
         grad = 0
         for _ in range(opts.num_samples):
             eps = torch.randn_like(params)
-            grad += fitness(batch, model, params + opts.sigma * eps) * eps
-            grad += fitness(batch, model, params - opts.sigma * eps) * (-eps)
+
+            grad += fitness(model, batch, params, eps, opts)
+            grad += fitness(model, batch, params, -eps, opts)
         grad /= 2 * opts.num_samples * opts.sigma
 
         print('got here')

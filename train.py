@@ -17,18 +17,19 @@ def get_inner_model(model):
     return model.module if isinstance(model, DataParallel) else model
 
 
-def validate(model, dataset, opts):
+def validate(model, dataset, opts, display=True):
     # Validate
-    print('Validating...')
-    cost = rollout(model, dataset, opts)
+    if display:
+        print('Validating...')
+    cost = rollout(model, dataset, opts, display=display)
     avg_cost = cost.mean()
-    print('Validation overall avg_cost: {} +- {}'.format(
-        avg_cost, torch.std(cost) / math.sqrt(len(cost))))
+    if display:
+        print('Validation overall avg_cost: {} +- {}'.format(avg_cost, torch.std(cost) / math.sqrt(len(cost))))
 
     return avg_cost
 
 
-def rollout(model, dataset, opts):
+def rollout(model, dataset, opts, display=True):
     # Put in greedy evaluation mode!
     set_decode_type(model, "greedy")
     model.eval()
@@ -38,11 +39,18 @@ def rollout(model, dataset, opts):
             cost, _ = model(move_to(bat, opts.device))
         return cost.data.cpu()
 
-    return torch.cat([
-        eval_model_bat(bat)
-        for bat
-        in tqdm(DataLoader(dataset, batch_size=opts.eval_batch_size), disable=opts.no_progress_bar)
-    ], 0)
+    if display:
+        return torch.cat([
+            eval_model_bat(bat)
+            for bat
+            in tqdm(DataLoader(dataset, batch_size=opts.eval_batch_size), disable=opts.no_progress_bar)
+        ], 0)
+    else:
+        return torch.cat([
+            eval_model_bat(bat)
+            for bat
+            in DataLoader(dataset, batch_size=opts.eval_batch_size)
+        ], 0)
 
 
 def clip_grad_norms(param_groups, max_norm=math.inf):
