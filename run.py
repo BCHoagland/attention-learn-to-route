@@ -199,6 +199,8 @@ def fitness(batch, model, params):
 
 
 def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
+    print(f'STARTED EVOLVE EPOCH {epoch}')
+
     # make dataset
     dataset = baseline.wrap_dataset(problem.make_dataset(size=opts.graph_size, num_samples=opts.epoch_size, distribution=opts.data_distribution))
     dataloader = DataLoader(dataset, batch_size=opts.batch_size, num_workers=1)
@@ -222,7 +224,7 @@ def evolve_epoch(model, baseline, epoch, problem, val_dataset, opts):
     # set model params to what was output from the batch training
     vector_to_parameters(params, model.parameters())
 
-    print(f'Evolve epoch {epoch} completed')
+    print(f'COMPLETED EVOLVE EPOCH {epoch}')
     wandb.log({'evolve': validate(model, val_dataset, opts)}, step=epoch)
 
 

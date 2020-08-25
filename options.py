@@ -62,8 +62,7 @@ def get_options(args=None):
                         help='Data distribution to use during training, defaults and options depend on problem.')
 
     # Misc
-    parser.add_argument('--log_step', type=int, default=1, help='Log info every log_step steps')
-    # parser.add_argument('--log_step', type=int, default=50, help='Log info every log_step steps')
+    parser.add_argument('--log_step', type=int, default=50, help='Log info every log_step steps')
     parser.add_argument('--log_dir', default='logs', help='Directory to write TensorBoard information to')
     parser.add_argument('--run_name', default='run', help='Name to identify the run')
     parser.add_argument('--output_dir', default='outputs', help='Directory to write output models to')
